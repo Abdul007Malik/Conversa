@@ -17,11 +17,8 @@ public class UserAccount {
 
     String firebase_url;
 
-    String username, password;
+    Boolean status; //True if task is successfully completed or not
 
-    Boolean accountStatus, status; //True if task is successfully completed or not
-
-    /* Data from the authenticated user */
     private AuthData mAuthData;
 
     private String mProvider; /*possible values: password, facebook,twitter*/
@@ -40,10 +37,10 @@ public class UserAccount {
         return errorMsg;
     }
 
-    public void setMessage(String message) {
-        this.errorMsg = message;
-    }
 
+    public Firebase getFirebase() {
+        return firebase;
+    }
     /*
     * This method creates user account but not authenticate, for that userLogin() method is used
     * The app url:https://conversa.firebaseIO.com" is used to access the app
@@ -55,37 +52,29 @@ public class UserAccount {
             @Override
             public void onSuccess(Map<String, Object> result) {
                 System.out.println("Successfully created user account with uid:" + result.get("uid"));
-                accountStatus = true;
+                status = true;
             }
 
             @Override
             public void onError(FirebaseError firebaseError) {
                 System.out.println("Something went wrong!! \n Account cannot be created..");
-                accountStatus = false;
+                status = false;
             }
         });
 
-        if(accountStatus)
-        {   if(userLogin(username,password)){
-                this.username = username;
-                this.password = password;
-            }
-            else{
-            accountStatus = false;
-            }
-        }
        }catch(FirebaseException fe){
             fe.printStackTrace();
        }
 
-        return accountStatus;
+        return status;
 
     }
 
     /*
     * This method Authenticate/Login the user
     * */
-    public Boolean userLogin(String username, String password)throws Exception {
+    public AuthData userLogin(String username, String password)throws Exception {
+
         try{
             if(firebase == null)
                 firebase = new Firebase(firebase_url);
@@ -93,57 +82,35 @@ public class UserAccount {
             @Override
             public void onAuthenticated(AuthData authData) {
                System.out.println("User ID: " + authData.getUid() + ", Provider: " + authData.getProvider());
-
-                mAuthData = authData;
-              // Authentication just completed successfully :)
-                /*Map<String, String> map = new HashMap<>();
+              /* Authentication just completed successfully :)
+                Map<String, String> map = new HashMap<>();
                 map.put("provider", authData.getProvider());
                 if(authData.getProviderData().containsKey("displayName")) {
                     map.put("displayName", authData.getProviderData().get("displayName").toString());
-                }*/
-
-                setAuthenticatedUser(authData);
-                //firebase.child("users").child(authData.getUid()).setValue(map);
-                status = true;
+                }firebase.child("users").child(authData.getUid()).setValue(map);*/
+                mAuthData = authData;
             }
 
             @Override
             public void onAuthenticationError(FirebaseError error) {
-                System.out.println("Something went wrong!! \n logging is not possible cannot be created..");
-                // Something went wrong :(
-                switch (error.getCode()) {
-                    case FirebaseError.USER_DOES_NOT_EXIST:
-                        // handle a non existing user
-                        setMessage("either username or password is incorrect");
-                        System.out.println("either username or password is incorrect ");
-                        break;
-                    case FirebaseError.INVALID_PASSWORD:
-                        // handle an invalid password
-                        setMessage("either username or password is incorrect");
-                        System.out.println("password is invalid");
-                        break;
-                    default:
-                        // handle other errors
-                        setMessage("Server is Down!!");
-                        System.out.println("server is down!!!");
-                        break;
-                }
-                status = false;
+                errorMsg = error.getMessage();
+                mAuthData = null;
             }
         });
         }catch(FirebaseException fe){
             fe.printStackTrace();
         }
 
-        return status;
+        return mAuthData;
     }
 
 
     /**
      * Unauthenticate from Firebase and from providers where necessary.
      */
-    private void logout() {
-        try{if (this.mAuthData != null) {
+    private void logout(AuthData authData) {
+        try{
+            if (authData != null) {
 
             /* logout of Firebase */
             firebase.unauth();
@@ -152,7 +119,7 @@ public class UserAccount {
             //method()
 
             /* Update authenticated user */
-            mAuthData = null;
+            authData = null;
         }
         }catch(FirebaseException fe){
         fe.printStackTrace();
@@ -186,31 +153,6 @@ public class UserAccount {
         return status;
     }
 
-    /**
-     * Once a user is logged in, take the mAuthData provided from Firebase and "use" it.
-     */
-    private Boolean setAuthenticatedUser(AuthData authData) {
-        Boolean status;
-        if (authData != null) {
-            status=true;
-            /* show a provider specific status text */
-            String name = null;
-            /*if ( authData.getProvider().equals("password")) {
-                name = authData.getUid();
-            } else{
-                //Log.e(TAG,"Invalid Provide:"+authData.getProvider());
-            }
-            if (name != null) {
-                mLoggedInStatusTextView.setText("Logged in as " + name + " (" + authData.getProvider() + ")");
-            }*/
-        } else {
-            status = false;
-
-        }
-        this.mAuthData = authData;
-
-        return status;
-    }
 
 
 }
