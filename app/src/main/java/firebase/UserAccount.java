@@ -7,6 +7,8 @@ import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.firebase.client.FirebaseException;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,15 +40,15 @@ public class UserAccount {
     }
 
 
-    public Firebase getFirebase() {
+    public Firebase getFirebaseRef() {
         return firebase;
     }
     /*
     * This method creates user account but not authenticate, for that userLogin() method is used
     * The app url:https://conversa.firebaseIO.com" is used to access the app
     * */
-    public Boolean createUserAccount(String username, String password)throws Exception{
-       try{ if(firebase == null)
+    public Boolean createUserAccount(String username, String password)throws FirebaseException{
+        if(firebase == null)
             firebase = new Firebase(firebase_url);
         firebase.createUser(username+"@firebase.com", password, new Firebase.ValueResultHandler<Map<String, Object>>() {
             @Override
@@ -62,9 +64,7 @@ public class UserAccount {
             }
         });
 
-       }catch(FirebaseException fe){
-            fe.printStackTrace();
-       }
+
 
         return status;
 
@@ -73,9 +73,9 @@ public class UserAccount {
     /*
     * This method Authenticate/Login the user
     * */
-    public AuthData userLogin(String username, String password)throws Exception {
+    public AuthData userLogin(String username, String password)throws FirebaseException,Exception {
 
-        try{
+
             if(firebase == null)
                 firebase = new Firebase(firebase_url);
         firebase.authWithPassword(username+"@firebase.com", password, new Firebase.AuthResultHandler() {
@@ -97,9 +97,7 @@ public class UserAccount {
                 mAuthData = null;
             }
         });
-        }catch(FirebaseException fe){
-            fe.printStackTrace();
-        }
+
 
         return mAuthData;
     }
@@ -119,7 +117,7 @@ public class UserAccount {
             //method()
 
             /* Update authenticated user */
-            authData = null;
+            //authData = null;
         }
         }catch(FirebaseException fe){
         fe.printStackTrace();
@@ -151,6 +149,12 @@ public class UserAccount {
         }
 
         return status;
+    }
+    public String getCurrentDate(){
+        Date date = new Date();
+        SimpleDateFormat ft = new SimpleDateFormat("E yyyy.MM.dd 'at' hh:mm:ss a zzz");
+
+        return ft.format(date);
     }
 
 
