@@ -31,28 +31,30 @@
     <EditText
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:id="@+id/city"
         android:hint="@string/cityName"
         android:layout_below="@+id/groupName"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_marginTop="10dp" />
+        android:layout_marginTop="10dp"
+        android:id="@+id/groupCity" />
 
     <EditText
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:id="@+id/desc"
         android:hint="@string/desc"
-        android:layout_below="@+id/city"
-        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
         android:layout_marginTop="10dp" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/createButton"
-        android:layout_below="@+id/desc"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="62dp"
-        android:text="@string/btncreate_group" />
+        android:text="@string/btncreate_group"
+        android:layout_alignParentBottom="true"
+        android:layout_alignRight="@+id/textView4"
+        android:layout_alignEnd="@+id/textView4"
+        android:layout_marginBottom="112dp" />
     </RelativeLayout>

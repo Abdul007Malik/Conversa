@@ -15,7 +15,14 @@ import java.util.Map;
 
 public class UserAccount {
 
+    private static UserAccount userAccountInstance = new UserAccount();
     Firebase firebase;
+
+    private UserAccount(){}
+
+    public static UserAccount getUserAccountInstance(){
+        return userAccountInstance;
+    }
 
     String firebase_url;
 
@@ -39,6 +46,7 @@ public class UserAccount {
         return errorMsg;
     }
 
+    public void setMessage(String msg){ this.errorMsg = msg;  }
 
     public Firebase getFirebaseRef() {
         return firebase;
@@ -106,7 +114,7 @@ public class UserAccount {
     /**
      * Unauthenticate from Firebase and from providers where necessary.
      */
-    private void logout(AuthData authData) {
+    public void logout(AuthData authData) {
         try{
             if (authData != null) {
 
