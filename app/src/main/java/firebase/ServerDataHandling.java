@@ -11,21 +11,41 @@ import com.firebase.client.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import buddy.conversa.CreateGroupActivity;
+import buddy.conversa.LoginActivity;
+import buddy.conversa.MyAsyncTask;
+import buddy.conversa.acitvityutility.Invite;
+import buddy.conversa.acitvityutility.UserNameInviteList;
+import sqliteDB.MyDB;
+
 
 public class ServerDataHandling {
+    private static ServerDataHandling sdHandler = new ServerDataHandling();
+
+    public static ServerDataHandling getInstance(){return  sdHandler;}
+
+
+
     private Firebase firebase;
     private Firebase messageRef;
     private Firebase groupRef;
     private Firebase moderatorRef;
     private Firebase userOnlineRef;
+    private Firebase userRef;
+    private List<String> idLists;
+    private Firebase inviteRef;
 
     /* Data from the authenticated user */
     private AuthData authData;
     public UserAccount userAccount;
+    private MyAsyncTask asyncTask;
+    String groupId;
+    UserNameInviteList userNameInviteList;
 
     private Iterator<DataSnapshot> iterator;
 
@@ -36,8 +56,11 @@ public class ServerDataHandling {
     // A mapping of room IDs to a boolean indicating presence.
     List<String> rooms;
 
-    public ServerDataHandling() {
+
+
+    private ServerDataHandling() {
         // User-specific instance variables.
+
         this.user = null;
         this.userId = null;
         this.userName = null;
@@ -48,9 +71,10 @@ public class ServerDataHandling {
 
         userAccount = UserAccount.getUserAccountInstance();
         this.firebase = userAccount.getFirebaseRef();
+
     }
 
-    public void setReference() {
+  /*  public void setReference() {
         if (firebase != null) {
             if (this.firebase.child("group_messages") != null)
                 this.messageRef = this.firebase.child("group_messages");
@@ -63,17 +87,14 @@ public class ServerDataHandling {
         } else
             System.out.println("setReference() method in ServerDataHandling firebase ref is null");
     }
-
+*/
 
     public Boolean[] createAccount(String userName, String password) {
         Boolean[] status = new Boolean[2];
         status[0] = status[1] = false;
         try {
             status[0] = userAccount.createUserAccount(userName, password);
-            if (status[0]) {
-                status[1] = login(userName, password);
-                return status;
-            }
+
         } catch (FirebaseException fe) {
             fe.printStackTrace();
         }
@@ -120,8 +141,10 @@ public class ServerDataHandling {
         return status;
     }
 
-    public Boolean createGroup(String groupName, String city, String desc, List<String> list) {
+    public Boolean createGroup(String groupName, String city, String desc, List<String> list, MyAsyncTask task ) {
         Boolean status = false;
+        this.asyncTask = task;
+
         this.groupRef = this.firebase.child("groups");
         Map<String, String> map = new HashMap<>();
         map.put("name", groupName);
@@ -133,11 +156,28 @@ public class ServerDataHandling {
         //  Intent intent = new Intent(this,Login.class);
         map.put("creation_date", userAccount.getCurrentDate());
         map.put("members", list.toString());
-        if (authData != null && this.groupRef != null) {
-            this.firebase.child(groupRef.getKey()).push().setValue(map);
-            status = true;
+        AuthData authData = firebase.getAuth();
+        if(authData ==  null){
+            userAccount.setMessage("login first");
+            return false;
         }
 
+        if (this.groupRef != null) {
+           final Firebase newRef = groupRef.push();
+                   newRef.setValue(map, new Firebase.CompletionListener() {
+                @Override
+                public void onComplete(FirebaseError firebaseError, Firebase firebase) {
+                    if (firebaseError != null) {
+                        userAccount.setMessage("Data could not be saved. " + firebaseError.getMessage());
+                    } else {
+                        groupId = newRef.getKey();
+                        sendInvitationToFriends();
+                        asyncTask.myListener();
+                    }
+                }
+            });
+            status = true;
+        }
 
         return status;
     }
@@ -170,4 +210,55 @@ public class ServerDataHandling {
             groupRef = this.firebase.child("groups");
 
     }
+
+
+    public Boolean sendInvitationToFriends(){
+        Boolean status = false;
+        idLists = new ArrayList<>();
+        userNameInviteList = UserNameInviteList.getInstance();
+
+        userRef = this.firebase.child("users");
+        userRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for(DataSnapshot postSnapshot: dataSnapshot.getChildren()){
+                    MyDB userInfo = postSnapshot.getValue(MyDB.class);
+                    if(userNameInviteList.getUserNames().contains(userInfo.getUsername())){
+
+                        idLists.add(postSnapshot.getKey());
+
+                    }
+
+
+                }
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                sdHandler.userAccount.setMessage(firebaseError.getMessage());
+
+            }
+        });
+
+        Invite invite = new Invite(authData.getUid(),userName,groupId,false);
+
+        //to remove dublicate items
+        idLists = new ArrayList<>(new HashSet<>(idLists));
+        for(String list : idLists) {
+            inviteRef = firebase.child("users").child(list).child("invites").push();
+            invite.setId(inviteRef.getKey());
+            inviteRef.setValue(invite);
+            status = true;
+        }
+
+
+
+        return status;
+    }
+
+    public void acceptInvite(){
+
+
+    }
+
 }

@@ -41,6 +41,17 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if(resultCode == RESULT_OK && requestCode == 3
+                && data.getExtras()!=null
+                &&data.getExtras().containsKey("flag")
+                && data.getExtras().getBoolean("flag")) {
+            signUpLink.setError("Already signup");
+        }
+    }
+
     public void clickHandler(View target){
         status = false;
         switch(target.getId()) {
@@ -97,7 +108,7 @@ public class LoginActivity extends AppCompatActivity {
                 break;
             case R.id.signUpLink:
                 Intent intent = new Intent(this,SignUpActivity.class);
-                this.startActivity(intent);
+                this.startActivityForResult(intent,3);
                 finish();
 
                 break;

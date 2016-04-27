@@ -3,6 +3,7 @@ package buddy.conversa;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,7 +25,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import buddy.conversa.acitvityutility.UserName;
+import buddy.conversa.acitvityutility.UserNameInviteList;
 import firebase.ServerDataHandling;
 import sqliteDB.FriendListInfoDatabaseHandler;
 
@@ -36,7 +37,10 @@ public class InviteActivity extends AppCompatActivity {
     Map<String, Boolean> map;
     List<String> inviteList;
     Boolean status;
+
+
     ServerDataHandling sdHandler;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,20 +161,17 @@ public class InviteActivity extends AppCompatActivity {
             Toast.makeText(getBaseContext(),"Atleast invite to one friend", Toast.LENGTH_SHORT).show();
 
         }else {
-            MyAsyncTask task = new MyAsyncTask(InviteActivity.this
-                    , new MyAsyncTask.AsyncResponse() {
-                @Override
-                public void processFinish(Boolean status, ServerDataHandling sdHandlerOutput) {
-                    sdHandler = sdHandlerOutput;
-                    InviteActivity.this.status = status;
-                }
-            });
-            task.execute("createGroup");
-            UserName userName =UserName.getInstance();
+
+
+            UserNameInviteList userNameInviteList = UserNameInviteList.getInstance();
             inviteList = new ArrayList<>(InviteActivity.getKeysByValue(map,true));
-            userName.setUserNameList(inviteList);
-            Intent intent = new Intent(this,MainActivity.class);
-            startActivity(intent);
+            userNameInviteList.setUserNameList(inviteList);
+            // This code is due to its(this activity) child nature.
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("flag",true);
+            setResult(RESULT_OK,resultIntent);
+            finish();
+
         }
 
 
@@ -187,4 +188,6 @@ public class InviteActivity extends AppCompatActivity {
         }
         return keys;
     }
+
+
 }
