@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_settings"
+        android:orderInCategory="100"
+        android:title="@string/action_settings"
+        app:showAsAction="always"
+        android:visible="true"/>
+
+    <item android:id="@+id/refresh"
+           android:visible="true"
+            android:icon="@drawable/refresh"
+            android:title="Refresh"/>
+
+    <item  android:id="@+id/createGroup"
+        android:title="Create Group"/>
+    <item  android:id="@+id/contacts"
+        android:title="Contacts"/>
+    <item  android:id="@+id/notfication"
+        android:title="Notification"/>
+    <item android:id="@+id/login"
+        android:title="Login" />
+</menu>

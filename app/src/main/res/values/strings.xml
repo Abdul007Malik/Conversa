@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Conversa</string>
+    <string name="btncontact">contacts</string>
+    <string name="btncreate_group">Create Group</string>
+    <string name="grouplist">Groups</string>
+    <string name="btnSignUp">SignUp</string>
+    <string name="btninvite">Invite</string>
+    <string name="create_group">Create Group</string>
+    <string name="groupName">Group Name</string>
+    <string name="cityName">City Name</string>
+    <string name="desc">Description</string>
+    <string name="action_settings">ActionSettings</string>
+    <string name="toolbarTitle">Conversa</string>
+
 </resources>
