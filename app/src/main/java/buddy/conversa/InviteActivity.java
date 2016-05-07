@@ -14,8 +14,15 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckedTextView;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import com.firebase.client.DataSnapshot;
+import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.firebase.client.FirebaseException;
+import com.firebase.client.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,26 +35,30 @@ import java.util.Set;
 import buddy.conversa.acitvityutility.UserNameInviteList;
 import firebase.ServerDataHandling;
 import sqliteDB.FriendListInfoDatabaseHandler;
+import sqliteDB.MyDB;
 
 public class InviteActivity extends AppCompatActivity {
     MyCustomAdapter dataAdapter = null;
     ListIterator<String> iterator;
-    FriendListInfoDatabaseHandler infoDatabaseHandler;
     ClickListener clickListener;
     Map<String, Boolean> map;
     List<String> inviteList;
     Boolean status;
+    ImageView image;
 
 
     ServerDataHandling sdHandler;
+    Firebase firebase;
+    List<String> friendList;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_invite);
+        sdHandler = ServerDataHandling.getInstance();
+        getFriends();
         //Generate list View from ArrayList
-        displayListView();
         Button btnInvite = (Button) findViewById(R.id.btnInvite);
 
 
@@ -57,35 +68,37 @@ public class InviteActivity extends AppCompatActivity {
 
     private void displayListView() {
 
-        //Array list of countries
-        List<String> friendList;
-        infoDatabaseHandler = new FriendListInfoDatabaseHandler(this, null, null, 1);
-        friendList = infoDatabaseHandler.getAll();
+        if(friendList == null){
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("flag",true);
+            resultIntent.putExtra("noFriend",true);
+            setResult(RESULT_OK,resultIntent);
+            finish();
+        }else{
+            map = new HashMap<>();
+            iterator = friendList.listIterator();
 
-        map = new HashMap<>();
-        iterator = friendList.listIterator();
-
-        //By default let all the friends in list is unchecked
-        while (iterator.hasNext()) {
-            map.put(iterator.next(), Boolean.FALSE);
-        }
+            //By default let all the friends in list is unchecked
+            while (iterator.hasNext()) {
+                map.put(iterator.next(), Boolean.FALSE);
+            }
 
 
-        //create an ArrayAdaptar from the String Array
-        dataAdapter = new MyCustomAdapter(this,
+            //create an ArrayAdaptar from the String Array
+            dataAdapter = new MyCustomAdapter(this,
                 R.layout.custom_list_layout, friendList);
-        ListView listView = (ListView) findViewById(R.id.friendListView);
-        if (listView != null) {
-            listView.setItemsCanFocus(false);
-            listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+            ListView listView = (ListView) findViewById(R.id.friendListView);
+            if (listView != null) {
+                listView.setItemsCanFocus(false);
+                listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 
-            // Assign adapter to ListView
-            listView.setAdapter(dataAdapter);
-            clickListener = new ClickListener(map);
+                // Assign adapter to ListView
+                listView.setAdapter(dataAdapter);
+                clickListener = new ClickListener(map);
+                listView.setOnItemClickListener(clickListener);
+                map = clickListener.getMap();
 
-            listView.setOnItemClickListener(clickListener);
-            map = clickListener.getMap();
-
+            }
         }
 
     }
@@ -120,12 +133,15 @@ public class InviteActivity extends AppCompatActivity {
     private class MyCustomAdapter extends ArrayAdapter<String> {
 
         private ArrayList<String> frndList;
-        Context context;
+        private int resourceId;
+        Activity context;
+        View rowView;
 
-        public MyCustomAdapter(Context context, int textViewResourceId,
+        public MyCustomAdapter(Activity context, int textViewResourceId,
                                List<String> list) {
             super(context, textViewResourceId, list);
             this.context = context;
+            this.resourceId = textViewResourceId;
             this.frndList = new ArrayList<>();
             this.frndList.addAll(list);
         }
@@ -133,13 +149,16 @@ public class InviteActivity extends AppCompatActivity {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
+            this.rowView = convertView;
             CheckedTextView name;
 
-            Log.v("ConvertView", String.valueOf(position));
-            LayoutInflater vi = ((Activity) context).getLayoutInflater();
-            name = (CheckedTextView) findViewById(R.id.checkboxTextView);
-
-            if(name!=null)
+            if (rowView == null) {
+                LayoutInflater vi = context.getLayoutInflater();
+                rowView = vi.inflate(resourceId, null);
+                name = (CheckedTextView) rowView.findViewById(R.id.checkboxTextView);
+                rowView.setTag(name);
+            }
+            name = (CheckedTextView) rowView.getTag();
             name.setText(frndList.get(position));
 
             return convertView;
@@ -169,6 +188,7 @@ public class InviteActivity extends AppCompatActivity {
             // This code is due to its(this activity) child nature.
             Intent resultIntent = new Intent();
             resultIntent.putExtra("flag",true);
+            resultIntent.putExtra("noFriend",false);
             setResult(RESULT_OK,resultIntent);
             finish();
 
@@ -188,6 +208,48 @@ public class InviteActivity extends AppCompatActivity {
         return keys;
     }
 
+    public void getFriends() throws FirebaseException{
 
+        friendList = new ArrayList<>();
+        firebase.child("users").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for(DataSnapshot post : dataSnapshot.getChildren()) {
+
+                    MyDB my = post.getValue(MyDB.class);
+                    friendList.add(my.getUsername());
+
+                }
+                displayListView();
+            }
+
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                try {
+                    showErrorDialog(firebaseError.getMessage());
+                    Intent intent = getIntent();
+                    setResult(RESULT_CANCELED,intent);
+                    finish();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+
+    /**
+     * Show errors to users
+     */
+    private void showErrorDialog(String message) throws Exception{
+        new AlertDialog.Builder(this)
+                .setTitle("Error")
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .setIcon(R.drawable.ic_dialog_alert)
+                .show();
+    }
 
 }

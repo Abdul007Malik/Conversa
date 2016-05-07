@@ -1,11 +1,13 @@
 package sqliteDB;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.List;
 
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MyDB {
 
-    private int id;
+    private String id;
     private String username;
     private double mob;
     private String city;
@@ -13,13 +15,14 @@ public class MyDB {
     public MyDB() {
 
     }
-    public MyDB(String username, double mob, String city, String group){
+    public MyDB(String username, double mob, String city, List<String> groups){
         this.username = username;
         this.mob = mob;
         this.city= city;
-        this.groups.add(group);
+        this.groups = groups;
 
     }
+
     public MyDB(String username, int mob, String city){
         this.username = username;
         this.mob = mob;
@@ -27,11 +30,17 @@ public class MyDB {
 
     }
 
-    public int getId() {
+    public void setMyDB(String username, double mob, String city, List<String> groups){
+        this.username = username;
+        this.mob = mob;
+        this.city= city;
+        this.groups = groups;
+    }
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -64,5 +73,9 @@ public class MyDB {
 
     public void setGroups(List<String> groups){
         this.groups = groups;
+    }
+
+    public void addGroup(String group){
+        this.groups.add(group);
     }
 }

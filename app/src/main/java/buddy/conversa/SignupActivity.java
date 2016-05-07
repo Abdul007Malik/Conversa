@@ -1,5 +1,6 @@
 package buddy.conversa;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -7,6 +8,15 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.firebase.client.FirebaseException;
+
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import firebase.ServerDataHandling;
 
@@ -18,27 +28,48 @@ public class SignUpActivity extends AppCompatActivity {
     private EditText mob;
     private EditText userCity;
     private Button btnSignUp;
+    private TextView loginLink;
 
-    boolean status;
+    boolean upStatus;
+    Firebase firebase;
 
     ServerDataHandling sdHandler;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
-
+        sdHandler = ServerDataHandling.getInstance();
         btnSignUp = (Button) findViewById(R.id.btnSignUp);
+        loginLink = (TextView) findViewById(R.id.loginLink);
 
 
     }
 
+/*
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(progressDialog!=null && progressDialog.isShowing())
+            progressDialog.dismiss();
+
+        if(sdHandler.userAccount!=null && sdHandler.userAccount.isAccountCreated()){
+            System.out.println("on pause signup");
+            Intent intent = new Intent();
+            intent.putExtra("flag",true);
+            setResult(RESULT_OK,intent);
+            finish();
+        }
+    }*/
+
     public void clickHandler(View target){
-        status = false;
+        upStatus = false;
         switch (target.getId()){
             case R.id.btnSignUp:
                 //Check for validation
                 boolean isNumber = false;
+                mob = (EditText)findViewById(R.id.mob);
                 String text = mob.getText().toString();
                 try {
                     double num = Double.parseDouble(text);
@@ -49,7 +80,7 @@ public class SignUpActivity extends AppCompatActivity {
                 newUserName = (EditText)findViewById(R.id.newUserName);
                 newPwd = (EditText)findViewById(R.id.newPwd);
                 userCity = (EditText)findViewById(R.id.userCity);
-                mob = (EditText)findViewById(R.id.mob);
+
                 if (newUserName.getText().toString().length() == 0
                         || newUserName.getText().toString().length() > 20) {
                     newUserName.setError("Specify Username and not more than 20 characters");
@@ -62,57 +93,76 @@ public class SignUpActivity extends AppCompatActivity {
                 }
                 //if validated then perform account creation
                 else {
+                    progressDialog = new ProgressDialog(this);
+                    progressDialog.setTitle("Loading");
+                    progressDialog.setMessage("Creating Account");
+                    progressDialog.setIndeterminate(false);
+                    progressDialog.setCancelable(true);
+                    progressDialog.show();
 
-                    MyAsyncTask task = new MyAsyncTask(newUserName.getText().toString()
-                            , newPwd.getText().toString()
-                            ,Double.parseDouble(mob.getText().toString())
-                            ,userCity.getText().toString()
-                            , SignUpActivity.this
-                            , new MyAsyncTask.AsyncResponse() {
-                        @Override
-                        public void processFinish(boolean status, ServerDataHandling sdHandlerOutput) {
-                            sdHandler = sdHandlerOutput;
-                            SignUpActivity.this.status = status;
-                        }
-                    });
-                    task.execute("signup");
-
+                    createAccount(newUserName.getText().toString()
+                            ,newPwd.getText().toString()
+                            ,userCity.getText().toString(),
+                            Double.parseDouble(mob.getText().toString()));
 
                 }
                 /* Check if the user is authenticated with Firebase already. If this is the
                        case we can set the authenticated user*/
 
-                if (!status) {
-                    try {
-                        showErrorDialog("OOPS!!\n" + sdHandler.userAccount.getMessage());
-                    } catch (Exception e) {
 
-                        e.printStackTrace();
-                    }
-                } else {
-
-                    Intent resultIntent = new Intent();
-                    resultIntent.putExtra("flag",true);
-                    setResult(RESULT_OK,resultIntent);
-                    finish();
-                }
                 break;
 
 
-
+            case R.id.loginLink:
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("flag",false);
+                    setResult(RESULT_OK,resultIntent);
+                    finish();
+                break;
         }
+
+
 
     }
 
     /**
      * Show errors to users
      */
-    private void showErrorDialog(String message) throws Exception{
+    private void showDialog(String message) throws Exception{
         new AlertDialog.Builder(this)
                 .setTitle("Error")
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok, null)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
+    }
+
+    public void createAccount(final String userName, String password, final String city, final double mob) throws
+            FirebaseException {
+        firebase = sdHandler.getFirebaseRef();
+        firebase.createUser(userName+"@firebase.com", password, new Firebase.ValueResultHandler<Map<String, Object>>() {
+
+            @Override
+            public void onSuccess(Map<String, Object> result) {
+                progressDialog.dismiss();
+                Toast.makeText(SignUpActivity.this,"Successfully created user account with uid:"+ result.get("uid"),Toast.LENGTH_LONG).show();
+                sdHandler.myInfo.setMyDB(userName,mob,city,null);
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("flag",true);
+                setResult(RESULT_OK,resultIntent);
+                finish();
+
+            }
+
+            @Override
+            public void onError(FirebaseError firebaseError) {
+                progressDialog.dismiss();
+                Toast.makeText(SignUpActivity.this,"Failed to create user",Toast.LENGTH_LONG).show();
+                throw new FirebaseException(firebaseError.getMessage());
+
+            }
+        });
+
+
     }
 }

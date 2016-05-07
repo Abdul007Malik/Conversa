@@ -24,7 +24,6 @@
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="Hola!s"
             android:id="@+id/textView"
-            android:textColor="@android:color/black"
             android:textSize="50sp"
             android:visibility="visible"
             android:textAlignment="center"
@@ -34,21 +33,11 @@
         <EditText
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number|phone"
-            android:ems="10"
             android:id="@+id/mob"
-            android:text="+91"
-            android:layout_marginTop="10dp"
-            android:textSize="25sp"
-            android:layout_gravity="center"
-            android:clickable="true"
-            android:digits="@android:string/emptyPhoneNumber"
-            android:ellipsize="middle"
-            android:enabled="true"
-            android:padding="5dp"
-            android:textIsSelectable="true"
-            android:hint="enter your phone number"
-            android:layout_weight="0.07" />
+            android:inputType="number"
+            android:hint="9876543210"
+            android:onClick="clickHandler"
+            android:textSize="22sp" />
 
         <EditText
             android:layout_width="match_parent"
@@ -96,5 +85,30 @@
             android:layout_marginTop="10dp"
             android:textSize="25sp"
             android:onClick="clickHandler" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Already Have An Account"
+            android:layout_below="@+id/btnLogin"
+            android:textSize="25sp"
+            android:textColor="@color/accent_material_dark"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:layout_gravity="center_horizontal" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Login"
+            android:id="@+id/loginLink"
+            android:textColor="#f20202"
+            android:linksClickable="false"
+            android:clickable="true"
+            android:onClick="clickHandler"
+            android:layout_below="@+id/textView3"
+            android:layout_centerHorizontal="true"
+            android:layout_gravity="center_horizontal" />
 
 </LinearLayout>
