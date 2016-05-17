@@ -22,4 +22,11 @@
         android:id="@+id/notif_ListView"
         android:layout_centerHorizontal="true"
         android:layout_below="@+id/toolbarInv" />
+    <ImageView
+        android:id="@+id/imageEmptyInv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/toolbar"
+        android:src="@drawable/ic_emptyinv"
+        android:visibility="gone"/>
 </RelativeLayout>

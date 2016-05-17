@@ -1,62 +1,51 @@
 package buddy.conversa.acitvityutility;
 
 /**
- * Created by AM on 27-04-2016.
+ * Created by AM on 16-05-2016.
  */
 public class Invite {
 
-    private String id;
-    private String fromUserId;
-    private String fromUserName;
-    private String groupId;
-    private Boolean status;
+        String code = null;
+        String name = null;
+        boolean selected = false;
 
-    public Invite() {
-    }
+        public Invite(String code, String name, boolean selected)
+        {
+            super();
+            this.code = code;
+            this.name = name;
+            this.selected = selected;
+        }
 
-    public Invite(String id, String fromUserId, String fromUserName, String groupId) {
-        this.id = id;
-        this.fromUserId = fromUserId;
-        this.fromUserName = fromUserName;
-        this.groupId = groupId;
-    }
+        public String getCode()
+        {
+            return code;
+        }
 
-    public Invite(String fromUserId, String fromUserName, String groupId,Boolean status) {
-        this.fromUserId = fromUserId;
-        this.fromUserName = fromUserName;
-        this.groupId = groupId;
-        this.status = status;
-    }
+        public void setCode(String code)
+        {
+            this.code = code;
+        }
 
-    public String getId() {
-        return id;
-    }
+        public String getName()
+        {
+            return name;
+        }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+        public void setName(String name)
+        {
+            this.name = name;
+        }
 
-    public String getFromUserId() {
-        return fromUserId;
-    }
+        public boolean isSelected()
+        {
+            return selected;
+        }
 
-    public void setFromUserId(String fromUserId) {
-        this.fromUserId = fromUserId;
-    }
+        public void setSelected(boolean selected)
+        {
+            this.selected = selected;
+        }
 
-    public String getFromUserName() {
-        return fromUserName;
-    }
 
-    public void setFromUserName(String fromUserName) {
-        this.fromUserName = fromUserName;
-    }
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
 }

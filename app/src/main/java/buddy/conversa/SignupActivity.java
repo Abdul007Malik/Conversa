@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -32,6 +33,7 @@ public class SignUpActivity extends AppCompatActivity {
 
     boolean upStatus;
     Firebase firebase;
+    final static String TAG = SignUpActivity.class.getSimpleName();
 
     ServerDataHandling sdHandler;
     private ProgressDialog progressDialog;
@@ -82,8 +84,8 @@ public class SignUpActivity extends AppCompatActivity {
                 userCity = (EditText)findViewById(R.id.userCity);
 
                 if (newUserName.getText().toString().length() == 0
-                        || newUserName.getText().toString().length() > 20) {
-                    newUserName.setError("Specify Username and not more than 20 characters");
+                        || newUserName.getText().toString().length() > 20 || newUserName.getText().toString().contains(" ")) {
+                    newUserName.setError("Specify Username without spaces and not more than 20 characters");
                 } else if (newPwd.getText().length() < 8 && newPwd.getText().length() > 15) {
                     newPwd.setError("Password must be in the range 8 to 15");
                 } else if (userCity.getText().toString().length() == 0) {
@@ -115,8 +117,7 @@ public class SignUpActivity extends AppCompatActivity {
 
             case R.id.loginLink:
                     Intent resultIntent = new Intent();
-                    resultIntent.putExtra("flag",false);
-                    setResult(RESULT_OK,resultIntent);
+                    setResult(RESULT_CANCELED,resultIntent);
                     finish();
                 break;
         }
@@ -144,13 +145,17 @@ public class SignUpActivity extends AppCompatActivity {
 
             @Override
             public void onSuccess(Map<String, Object> result) {
-                progressDialog.dismiss();
-                Toast.makeText(SignUpActivity.this,"Successfully created user account with uid:"+ result.get("uid"),Toast.LENGTH_LONG).show();
-                sdHandler.myInfo.setMyDB(userName,mob,city,null);
-                Intent resultIntent = new Intent();
-                resultIntent.putExtra("flag",true);
-                setResult(RESULT_OK,resultIntent);
-                finish();
+                try {
+                    progressDialog.dismiss();
+                    Toast.makeText(SignUpActivity.this, "Successfully created user account with uid:" + result.get("uid"), Toast.LENGTH_LONG).show();
+                    sdHandler.myInfo.setMyDB(userName, mob, city, null);
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("flag", true);
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                }catch (Exception e){
+                    Log.e(TAG,"exception",e);
+                }
 
             }
 
@@ -158,8 +163,12 @@ public class SignUpActivity extends AppCompatActivity {
             public void onError(FirebaseError firebaseError) {
                 progressDialog.dismiss();
                 Toast.makeText(SignUpActivity.this,"Failed to create user",Toast.LENGTH_LONG).show();
-                throw new FirebaseException(firebaseError.getMessage());
-
+                try {
+                    showDialog(firebaseError.getMessage());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                Log.e(TAG,"exception",firebaseError.toException());
             }
         });
 

@@ -6,6 +6,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -13,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,15 +29,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import buddy.conversa.acitvityutility.Invite;
+import buddy.conversa.acitvityutility.Invitation;
 import firebase.ServerDataHandling;
 
 public class InvitationActivity extends AppCompatActivity {
+    private static final String TAG = InvitationActivity.class.getSimpleName() ;
     Toolbar toolbar;
     ServerDataHandling sdHandler;
-    Invite invite;
+    Invitation invite;
     Firebase firebase;
     ListView notfListView;
+    private ImageView imageEmpty;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,11 +48,13 @@ public class InvitationActivity extends AppCompatActivity {
         sdHandler = ServerDataHandling.getInstance();
         firebase = sdHandler.getFirebaseRef();
 
+        imageEmpty = (ImageView) findViewById(R.id.imageEmptyInv);
         toolbar = (Toolbar) findViewById(R.id.toolbarInv);
         notfListView = (ListView) findViewById(R.id.notif_ListView);
 
         if(firebase.getAuth()==null){
             Toast.makeText(this,"Login First",Toast.LENGTH_LONG).show();
+
         }else {
             initToolbar();
             getInvitations();
@@ -89,13 +96,13 @@ public class InvitationActivity extends AppCompatActivity {
         getSupportActionBar().setHomeButtonEnabled(true);
 
     }
-    private class MyCustomAdapter extends ArrayAdapter<Invite> {
-        private List<Invite> inviteList;
+    private class MyCustomAdapter extends ArrayAdapter<Invitation> {
+        private List<Invitation> inviteList;
         private Context context;
 
 
 
-        public MyCustomAdapter(Context context,int textViewResourceId,List<Invite> list) {
+        public MyCustomAdapter(Context context,int textViewResourceId,List<Invitation> list) {
             super(context,textViewResourceId,list);
             this.inviteList = list;
             this.context = context;
@@ -123,7 +130,7 @@ public class InvitationActivity extends AppCompatActivity {
             }
 
             ViewHolder holder = (ViewHolder) convertView.getTag();
-            final Invite invite = inviteList.get(position);
+            final Invitation invite = inviteList.get(position);
             holder.textl.setText(invite.getId());
 
             //Handle buttons and add onClickListeners
@@ -132,18 +139,25 @@ public class InvitationActivity extends AppCompatActivity {
             holder.btnDecline.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View v) {
-
-                    declineInvite(invite.getId());
-                    MyCustomAdapter.this.inviteList.remove(position);
-                    notifyDataSetChanged();
+                    try {
+                        declineInvite(invite.getId());
+                        MyCustomAdapter.this.inviteList.remove(position);
+                        notifyDataSetChanged();
+                    }catch (Exception e){
+                        Log.e(TAG,"exception",e);
+                    }
                 }
             });
             holder.btnAccept.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View v) {
-                    acceptInvite(invite.getId());
-                    MyCustomAdapter.this.inviteList.remove(position);
-                    notifyDataSetChanged();
+                    try {
+                        acceptInvite(invite.getId());
+                        MyCustomAdapter.this.inviteList.remove(position);
+                        notifyDataSetChanged();
+                    }catch (Exception e){
+                        Log.e(TAG,"exception",e);
+                    }
                 }
             });
 
@@ -159,18 +173,21 @@ public class InvitationActivity extends AppCompatActivity {
 
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Invite invite = dataSnapshot.getValue(Invite.class);
-                if(invite!=null) {
+                Invitation invite = dataSnapshot.getValue(Invitation.class);
+                try {
                     InvitationActivity.this.invite = invite;
                     enterRoom(invite.getGroupId());
+                }catch (Exception e){
+                    Log.e(TAG,"exception",e);
                 }
+
             }
             @Override
             public void onCancelled(FirebaseError firebaseError) {
                 try {
                     showDialog("Error",firebaseError.getMessage());
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(TAG,"exception",e);
                 }
 
             }
@@ -186,25 +203,29 @@ public class InvitationActivity extends AppCompatActivity {
 
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Invite invite = dataSnapshot.getValue(Invite.class);
-                if(invite!=null){
+                Invitation invite = dataSnapshot.getValue(Invitation.class);
+                try {
                     userRef.child("invites").child(invite.getId()).setValue(null);
 
-                    Map<String,Object> map = new HashMap<>();
+                    Map<String, Object> map = new HashMap<>();
 
                     // This statement will remove its entry from the group of the notification
-                    map.put(firebase.getAuth().getUid(),null);
+                    map.put(firebase.getAuth().getUid(), null);
                     firebase.child("groups").child(invite.getGroupId()).child("members").updateChildren(map);
 
+                }catch (Exception e){
+                    Log.e(TAG,"exception",e);
                 }
+
             }
 
             @Override
             public void onCancelled(FirebaseError firebaseError) {
+                Log.e(TAG,"exception",firebaseError.toException());
                 try {
                     showDialog("Error",firebaseError.getMessage());
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(TAG,"exception",e);
                 }
             }
         });
@@ -221,8 +242,12 @@ public class InvitationActivity extends AppCompatActivity {
             @Override
             public void onComplete(FirebaseError firebaseError, Firebase firebase) {
                 //it will delete the invitation from the server
-                userRef.child("invites").child(invite.getId()).setValue(null);
-
+                if(firebaseError!=null){
+                    Log.e(TAG,"exception",firebaseError.toException());
+                    Toast.makeText(InvitationActivity.this,firebaseError.getMessage(),Toast.LENGTH_LONG);
+                }else {
+                    userRef.child("invites").child(invite.getId()).setValue(null);
+                }
             }
         });
 
@@ -232,29 +257,35 @@ public class InvitationActivity extends AppCompatActivity {
 
     public void getInvitations() {
 
-        Firebase inviteRef = this.firebase.child("users").child(firebase.getAuth().getUid()).child("invite");
+        final Firebase inviteRef = this.firebase.child("users").child(firebase.getAuth().getUid()).child("invite");
 
         inviteRef.addValueEventListener(new ValueEventListener() {
-            List<Invite> inviteList = new ArrayList<>();
+            List<Invitation> inviteList = new ArrayList<>();
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                for (DataSnapshot post : dataSnapshot.getChildren()) {
+                try {
+                    for (DataSnapshot post : dataSnapshot.getChildren()) {
 
-                    Invite invite = post.getValue(Invite.class);
-                    inviteList.add(invite);
+                        Invitation invite = post.getValue(Invitation.class);
+                        inviteList.add(invite);
 
-
-
+                    }
+                    if (inviteList != null) {
+                        ArrayAdapter<Invitation> adapter =
+                                new MyCustomAdapter(InvitationActivity.this, R.layout.custom_list_layout_invitation, inviteList);
+                        notfListView.setAdapter(adapter);
+                    } else {
+                        notfListView.setEmptyView(imageEmpty);
+                    }
+                }catch (Exception e){
+                    Log.e(TAG,"exception",e);
                 }
-                ArrayAdapter<Invite> adapter =
-                        new MyCustomAdapter(InvitationActivity.this,R.layout.custom_list_layout_invitation,inviteList);
-                notfListView.setAdapter(adapter);
-
             }
 
             @Override
             public void onCancelled(FirebaseError firebaseError) {
                 try {
+                    Log.e(TAG,"exception",firebaseError.toException());
                     showDialog("Error",firebaseError.getMessage());
                 } catch (Exception e) {
                     e.printStackTrace();

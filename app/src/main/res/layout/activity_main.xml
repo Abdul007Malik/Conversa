@@ -23,10 +23,11 @@
     <ListView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/mainListView"
+        android:id="@+id/listView"
         android:layout_centerHorizontal="true"
         android:background="#605c5c"
         android:layout_below="@+id/toolbar" />
+
     <ImageView
         android:id="@+id/imageEmpty"
         android:layout_width="match_parent"

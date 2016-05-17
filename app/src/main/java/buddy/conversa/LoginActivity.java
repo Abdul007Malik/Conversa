@@ -13,10 +13,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.client.AuthData;
+import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.firebase.client.FirebaseException;
+import com.firebase.client.ValueEventListener;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import firebase.ServerDataHandling;
@@ -24,12 +28,13 @@ import firebase.ServerDataHandling;
 public class LoginActivity extends AppCompatActivity {
 
 
+    private static final String TAG = LoginActivity.class.getSimpleName();
     private EditText username;
     private EditText password;
     private Button btnLogin;
     private TextView signUpLink;
     private final int SIGNUP_INTENT = 3;
-    private boolean loginStatus;
+    private boolean flag;
 
 
     ServerDataHandling sdHandler;
@@ -42,7 +47,6 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         sdHandler = ServerDataHandling.getInstance();
-        sdHandler.setActivity(this);
         btnLogin = (Button) findViewById(R.id.btnLogin);
         signUpLink = (TextView) findViewById(R.id.signUpLink);
 
@@ -51,10 +55,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        if (resultCode == RESULT_OK && requestCode == SIGNUP_INTENT
-                && data.getExtras() != null
-                && data.getExtras().containsKey("flag")
-                && data.getExtras().getBoolean("flag")) {
+        if (resultCode == RESULT_OK && requestCode == SIGNUP_INTENT) {
             signUpLink.setError("Already signup");
         }
     }
@@ -84,7 +85,7 @@ public class LoginActivity extends AppCompatActivity {
                 else {
                     progressDialog = new ProgressDialog(this);
                     progressDialog.setTitle("Loading");
-                    progressDialog.setMessage("Creating Account");
+                    progressDialog.setMessage("Loging in");
                     progressDialog.setIndeterminate(false);
                     progressDialog.setCancelable(true);
                     progressDialog.show();
@@ -103,37 +104,44 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-    /**
-     * Show errors to users
-     */
-    private void showErrorDialog(String message) throws Exception {
-        new AlertDialog.Builder(this)
-                .setTitle("Error")
-                .setMessage(message)
-                .setPositiveButton(android.R.string.ok, null)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
-    }
 
     public void login(String username, String password) throws FirebaseException {
         firebase = sdHandler.getFirebaseRef();
         firebase.authWithPassword(username+"@firebase.com", password, new Firebase.AuthResultHandler() {
             @Override
             public void onAuthenticated(AuthData authData) {
-                progressDialog.hide();
-                Toast.makeText(LoginActivity.this,"You are Logged in with" + authData ,Toast.LENGTH_LONG).show();
-                progressDialog.show();
-                setAuthenticatedUser();
+                try {
+                    progressDialog.hide();
+                    sdHandler.myInfo.setId(authData.getUid());
+                    progressDialog.setMessage("Authenticating");
+                    Toast.makeText(LoginActivity.this, "You are Logged in with" + authData.getProviderData(), Toast.LENGTH_SHORT).show();
+                    LoginActivity.this.authData = authData;
+                    progressDialog.show();
+
+                    isUserExist();
+                    //setAuthenticatedUser();
+
+                }catch (Exception e){
+                    if(progressDialog.isShowing())
+                        progressDialog.dismiss();
+                    returnResult(false);
+                    System.out.print("e"+e.getMessage());
+                    Log.e(TAG,"exception",e);
+                }
+
             }
 
             @Override
             public void onAuthenticationError(FirebaseError error) {
-                progressDialog.hide();
+                if(progressDialog.isShowing())
+                progressDialog.dismiss();
                 try {
                     showErrorDialog(error.getMessage());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                Log.e(TAG,"exception",error.toException());
+
             }
         });
 
@@ -141,36 +149,32 @@ public class LoginActivity extends AppCompatActivity {
 
     /* *
             * Once a user is logged in, take the mAuthData provided from Firebase and "use" it.*/
-    private void setAuthenticatedUser() throws FirebaseException {
-        final boolean[] authStatus = new boolean[1];
-        authStatus[0] = true;
-        String userId = authData.getUid();
+    private void setAuthenticatedUser() {
+
+
         try{
-        if (firebase.child("users").child(userId).child("username") == null) {
-                firebase.child("users").child(userId).setValue(sdHandler.myInfo, new Firebase.CompletionListener() {
+                firebase.child("users").child(firebase.getAuth().getUid()).setValue(sdHandler.myInfo, new Firebase.CompletionListener() {
                     @Override
                     public void onComplete(FirebaseError firebaseError, Firebase firebase) {
-                        if(firebaseError == null){
+                        if(progressDialog.isShowing())
                             progressDialog.dismiss();
-                            Toast.makeText(LoginActivity.this,"User ID: " +authData .getUid() + ", Provider: "
-                                    + authData.getProvider(),Toast.LENGTH_LONG).show();
+
+                        if(firebaseError == null){
+
                             returnResult(true);
 
                         }
                         else{
-                            progressDialog.dismiss();
-                            Toast.makeText(LoginActivity.this,"User Info is not stored to the Server",Toast.LENGTH_LONG).show();
+                            Log.e(TAG,"exception",firebaseError.toException());
                             returnResult(false);
                         }
                     }
                 });
-            }}catch (Exception error){
-            error.printStackTrace();
-            try {
-                showErrorDialog(error.getMessage());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        }catch (Exception e){
+            if(progressDialog.isShowing())
+                progressDialog.dismiss();
+            Log.e(TAG,"exception",e);
+            returnResult(false);
         }
 
     }
@@ -186,5 +190,35 @@ public void returnResult(boolean val){
 
 }
 
+    public void isUserExist(){
+        firebase.child("users").child(firebase.getAuth().getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(null==dataSnapshot.getValue()){
+                    System.out.println(dataSnapshot);
+                   setAuthenticatedUser();
+                }
+
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+
+            }
+        });
+
+    }
+
+    /**
+     * Show errors to users
+     */
+    private void showErrorDialog(String message) throws Exception {
+        new AlertDialog.Builder(this)
+                .setTitle("Error")
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
 
 }

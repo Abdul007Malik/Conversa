@@ -1,4 +1,4 @@
-package firebase;
+package buddy.conversa.acitvityutility;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -23,7 +23,7 @@ public class ConnectionDetector {
      * Checking for all possible internet providers
      * **/
     public boolean isConnectingToInternet() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        /*ConnectivityManager connectivityManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Network[] networks = connectivityManager.getAllNetworks();
             NetworkInfo networkInfo;
@@ -46,7 +46,7 @@ public class ConnectionDetector {
                 }
             }
         }
-        Toast.makeText(mContext,"You are not connected to the Internet", Toast.LENGTH_SHORT).show();
-        return false;
+        Toast.makeText(mContext,"You are not connected to the Internet", Toast.LENGTH_SHORT).show();*/
+        return true;
     }
 }

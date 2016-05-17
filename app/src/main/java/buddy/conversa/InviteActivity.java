@@ -1,20 +1,12 @@
 package buddy.conversa;
 
-import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CheckedTextView;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -27,229 +19,196 @@ import com.firebase.client.ValueEventListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import buddy.conversa.acitvityutility.UserNameInviteList;
+import buddy.conversa.acitvityutility.Invite;
+import buddy.conversa.acitvityutility.MyCustomAdapter;
 import firebase.ServerDataHandling;
-import sqliteDB.FriendListInfoDatabaseHandler;
 import sqliteDB.MyDB;
 
 public class InviteActivity extends AppCompatActivity {
-    MyCustomAdapter dataAdapter = null;
-    ListIterator<String> iterator;
-    ClickListener clickListener;
-    Map<String, Boolean> map;
-    List<String> inviteList;
-    Boolean status;
-    ImageView image;
+    //ClickListener clickListener;
+    List<Invite> inviteList;
+    MyCustomAdapter adapter;
+    Button btnInvite;
+    final static String TAG = InviteActivity.class.getSimpleName();
 
 
     ServerDataHandling sdHandler;
     Firebase firebase;
     List<String> friendList;
+    Map<String,String> map;
 
+    ListView listView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_invite);
-        sdHandler = ServerDataHandling.getInstance();
-        getFriends();
-        //Generate list View from ArrayList
-        Button btnInvite = (Button) findViewById(R.id.btnInvite);
+        try {
+            setContentView(R.layout.invite_activity);
+            sdHandler = ServerDataHandling.getInstance();
+            firebase = new Firebase("https://conversa.firebaseIO.com");
+            getFriends();
+            //Generate list View from ArrayList
+            btnInvite = (Button) findViewById(R.id.btnInvite);
 
 
-
-    }
-
-
-    private void displayListView() {
-
-        if(friendList == null){
+        }catch(Exception e){
+            Log.e(TAG,e.getMessage(),e);
             Intent resultIntent = new Intent();
-            resultIntent.putExtra("flag",true);
-            resultIntent.putExtra("noFriend",true);
-            setResult(RESULT_OK,resultIntent);
+            setResult(RESULT_CANCELED,resultIntent);
             finish();
-        }else{
-            map = new HashMap<>();
-            iterator = friendList.listIterator();
-
-            //By default let all the friends in list is unchecked
-            while (iterator.hasNext()) {
-                map.put(iterator.next(), Boolean.FALSE);
-            }
-
-
-            //create an ArrayAdaptar from the String Array
-            dataAdapter = new MyCustomAdapter(this,
-                R.layout.custom_list_layout, friendList);
-            ListView listView = (ListView) findViewById(R.id.friendListView);
-            if (listView != null) {
-                listView.setItemsCanFocus(false);
-                listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-
-                // Assign adapter to ListView
-                listView.setAdapter(dataAdapter);
-                clickListener = new ClickListener(map);
-                listView.setOnItemClickListener(clickListener);
-                map = clickListener.getMap();
-
-            }
         }
+
 
     }
 
-    //Implements OnItemClickListener
-    private class ClickListener implements AdapterView.OnItemClickListener {
 
-        Map<String, Boolean> temp;
-
-        public ClickListener(Map<String, Boolean> map) {
-            this.temp = map;
+    private void displayListView() throws Exception{
+        inviteList = new ArrayList<>();
+        Iterator <String> iterator = friendList.listIterator();
+        while (iterator.hasNext()) {
+            String str = iterator.next();
+            Invite invite = new Invite(map.get(str), str, false);
+            inviteList.add(invite);
         }
+        adapter = new MyCustomAdapter(InviteActivity.this,
+                    R.layout.custom_list_layout, inviteList);
 
-        @Override
-        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            CheckedTextView ctv = (CheckedTextView) view;
-            if (ctv.isChecked())
-                temp.put(ctv.getText().toString(), true);
-            else
-                temp.put(ctv.getText().toString(), false);
-        }
+            // Assign adapter to ListView
+        listView.setAdapter(adapter);
 
-        Map<String, Boolean> getMap(){
-            return temp;
-        }
     }
 
-
-    //This class is used to set the Invite layout with the List of friends each setting
-    // in a checkedtextview
-
-    private class MyCustomAdapter extends ArrayAdapter<String> {
-
-        private ArrayList<String> frndList;
-        private int resourceId;
-        Activity context;
-        View rowView;
-
-        public MyCustomAdapter(Activity context, int textViewResourceId,
-                               List<String> list) {
-            super(context, textViewResourceId, list);
-            this.context = context;
-            this.resourceId = textViewResourceId;
-            this.frndList = new ArrayList<>();
-            this.frndList.addAll(list);
-        }
-
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            this.rowView = convertView;
-            CheckedTextView name;
-
-            if (rowView == null) {
-                LayoutInflater vi = context.getLayoutInflater();
-                rowView = vi.inflate(resourceId, null);
-                name = (CheckedTextView) rowView.findViewById(R.id.checkboxTextView);
-                rowView.setTag(name);
-            }
-            name = (CheckedTextView) rowView.getTag();
-            name.setText(frndList.get(position));
-
-            return convertView;
-
-        }
-    }
 
     public void checkButtonClick(View v) {
-
-        Boolean flag = false;
-        for(Boolean values: map.values()){
-            if(!values){
-                flag  = true;
-            }
-        }
-
-        if(!flag)
-        {
-            Toast.makeText(getBaseContext(),"Atleast invite to one friend", Toast.LENGTH_SHORT).show();
-
-        }else {
-
-
-            UserNameInviteList userNameInviteList = UserNameInviteList.getInstance();
-            inviteList = new ArrayList<>(getKeysByValue(map,true));
-            userNameInviteList.setUserNameList(inviteList);
-            // This code is due to its(this activity) child nature.
+        try { ArrayList<String> list = new ArrayList<>();
+            boolean flag = false;
             Intent resultIntent = new Intent();
-            resultIntent.putExtra("flag",true);
-            resultIntent.putExtra("noFriend",false);
-            setResult(RESULT_OK,resultIntent);
-            finish();
+            if(v.getId() == R.id.btnInvite) {
 
-        }
+                StringBuffer responseText = new StringBuffer();
+                responseText.append("The following were selected...\n");
+
+                ArrayList<Invite> invites = adapter.getfrndList();
+
+                for(int i=0;i<invites.size();i++)
+                {
+                    Invite invite = invites.get(i);
+
+                    if(invite.isSelected())
+                    {   flag = true;
+                        list.add(invite.getCode());
+                        responseText.append("\n" + invite.getName());
+                    }
+                }
+
+                Toast.makeText(getApplicationContext(),
+                        responseText, Toast.LENGTH_LONG).show();
+
+                if (!flag) {
+                    Toast.makeText(getBaseContext(), "Atleast invite to one friend", Toast.LENGTH_SHORT).show();
+
+                } else {
+
+                    // This code is due to its(this activity) child nature.
+
+                    resultIntent.putStringArrayListExtra("inviteList",list);
+                    resultIntent.putExtra("noFriend", false);
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+
+                }
 
 
-
-
-    }
-    public <T, E> Set<T> getKeysByValue(Map<T, E> map, E value) {
-        Set<T> keys = new HashSet<>();
-        for (Map.Entry<T, E> entry : map.entrySet()) {
-            if (value == entry.getValue()) {
-                keys.add(entry.getKey());
             }
-        }
-        return keys;
+        } catch (Exception e) {
+            Intent intent = getIntent();
+            setResult(RESULT_CANCELED, intent);
+            finish();
+        Log.e(TAG, "exception", e);
     }
 
-    public void getFriends() throws FirebaseException{
 
+    }
+
+    public void getFriends(){
         friendList = new ArrayList<>();
+        map = new HashMap<>();
         firebase.child("users").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                for(DataSnapshot post : dataSnapshot.getChildren()) {
+                try {
+                    for (DataSnapshot post : dataSnapshot.getChildren()) {
 
-                    MyDB my = post.getValue(MyDB.class);
-                    friendList.add(my.getUsername());
+                        MyDB my = post.getValue(MyDB.class);
+                        if(firebase.getAuth().getUid()!=my.getId()) {
+                            friendList.add(my.getUsername());
+                            map.put(my.getUsername(),my.getId());
+                        }
 
-                }
-                displayListView();
+
+                    }
+
+                        if (friendList == null || friendList.size() == 0) {
+                            Intent resultIntent = new Intent();
+                            resultIntent.putExtra("flag", true);
+                            resultIntent.putExtra("noFriend", true);
+                            setResult(RESULT_OK, resultIntent);
+                            finish();
+                        } else {
+                            listView = (ListView) findViewById(R.id.friendListView);
+
+                            listView.setItemsCanFocus(false);
+                            listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+                            //handler.sendEmptyMessage(0);
+                            friendList = new ArrayList<>(new HashSet<>(friendList));
+
+                            displayListView();
+                            /*dataAdapter = new MyCustomAdapter(InviteActivity.this,
+                                    R.layout.custom_list_layout, friendList);*/
+
+
+                        }
+
+
+                }catch (FirebaseException fe){
+                    Log.e(TAG,"exception",fe);
+                    Intent intent = getIntent();
+                    setResult(RESULT_CANCELED, intent);
+                    finish();
+                }catch (Exception e){
+                Log.e(TAG,"exception",e);
+                    Intent intent = getIntent();
+                    setResult(RESULT_CANCELED, intent);
+                    finish();
             }
+            }
+
+
+
 
 
             @Override
             public void onCancelled(FirebaseError firebaseError) {
-                try {
-                    showErrorDialog(firebaseError.getMessage());
-                    Intent intent = getIntent();
-                    setResult(RESULT_CANCELED,intent);
-                    finish();
 
+                try {
+                    Toast.makeText(InviteActivity.this,firebaseError.getMessage(),Toast.LENGTH_LONG).show();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(TAG,e.getMessage(),e);
                 }
+                Intent intent = getIntent();
+                setResult(RESULT_CANCELED, intent);
+                finish();
+
             }
+
         });
     }
 
-
-    /**
-     * Show errors to users
-     */
-    private void showErrorDialog(String message) throws Exception{
-        new AlertDialog.Builder(this)
-                .setTitle("Error")
-                .setMessage(message)
-                .setPositiveButton(android.R.string.ok, null)
-                .setIcon(R.drawable.ic_dialog_alert)
-                .show();
-    }
 
 }
