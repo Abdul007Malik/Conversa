@@ -1,6 +1,6 @@
 # Conversa
 ####Synopsis
-This is a Group Chat Android Application, allow to create user profile and share their opinions on the
+This is a Group Chat Android Application, allows to create user profile and share their opinions on the
 Current Affairs either by creating a Group or Joining from the available groups.
 A user can see a group if it having the same city as that of user. 
 Request for the membership in a particular group can be acheived by sending request to the group admin.
